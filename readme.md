@@ -5,12 +5,12 @@ Motor Imagery Classification (Accepted by SMC 2023).
 
 # Datasets
 
->We evaluate the performance of SalientSleepNet on Sleep-EDF-39 and Sleep-EDF-153 datasets, which are open-access databases of polysomnography (PSG) recordings.
+>We evaluate the performance of ST-DG on BCI-IV 2a and BCI-IV 2b datasets, which are open-access databases.
 
 # Requirements
 
 * Python 3.7
-* Tensorflow 2.3.1
+* Pytorch 2.3.1
 
 # Function of file
 
@@ -20,6 +20,3 @@ Motor Imagery Classification (Accepted by SMC 2023).
   * Generate single-branch and two-branch model.
 
 # Usage
-
-We've offered two models:  `SingleSalientModel` and `TwoSteamSalientModel` for single-branch method and two-branch method respectively.
-You need to use a tensor with shape: **[None, group_sequence_number , group_sequence_length * sleep_epoch_length, 1, 1]** for the single-branch method while duplicate tensors with the same shape for the two-branch method.
