@@ -14,9 +14,11 @@ Motor Imagery Classification (Accepted by SMC 2023).
 
 # Function of file
 
-* `construct_model.py`
-  * Generate submodule of model (E.g., U-unit, MSE).
-* `model.py`
-  * Generate single-branch and two-branch model.
+* `DG_2amain.py and DG_2bmain`
+  * Training and testing process for BCI-2A and BCI-2B datasets
+* `/data_preprocessing`
+  * data preprocess codes
+* `/models/MyTransformer`
+  * ST-DG codes
 
 # Usage
