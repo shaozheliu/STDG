@@ -245,6 +245,98 @@ def train_model_with_domain(model, criterion, criterion_domain, optimizer, sched
     return model
 
 
+def train_model_without_domain(model, criterion, criterion_domain, optimizer, scheduler, device, dataloaders, n_epoch,
+                            args={'dataset_sizes': {'train': 1800, 'val': 200, 'test':304}},
+                            ):
+    since = time.time()
+
+    best_model_wts = copy.deepcopy(model.state_dict())
+    best_acc = 0.0
+    for epoch in tqdm.tqdm(range(n_epoch)):
+        sys.stdout.flush()
+        print('Epoch {}/{}'.format(epoch+1, 300))
+        print('-' * 10)
+
+        # Each epoch has a training and validation phase
+        for phase in ['train', 'test']:
+            if phase == 'train':
+                model.train()  # Set model to training mode
+            else:
+                model.eval()   # Set model to evaluate mode
+
+            running_loss = 0.0
+            running_corrects = 0
+            domain_running_loss = 0.0
+            domain_running_corrects = 0
+            print(phase)
+            # Iterate over data.
+            # for i, (inputs, labels, domain_labels) in enumerate(dataloaders[phase]):
+            for i, (inputs, labels, domain_labels) in enumerate(dataloaders[phase]):
+                p = float(i + epoch * len(dataloaders[phase])) / n_epoch / len(dataloaders[phase])
+                alpha = 2. / (1. + np.exp(-10 * p)) - 1
+                inputs = inputs.type(torch.cuda.FloatTensor).to(device)
+                labels = labels.type(torch.cuda.LongTensor).to(device)
+                domain_labels = domain_labels.type(torch.cuda.LongTensor).to(device)
+                optimizer.zero_grad()
+
+                # forward
+                # track history if only in train
+                with torch.set_grad_enabled(phase == 'train'):
+                    outputs, domain_output = model(inputs,alpha)
+                    _, preds = torch.max(torch.softmax(outputs,dim=1), 1)
+                    _, domain_preds = torch.max(torch.softmax(domain_output,dim=1), 1)
+                    # label predictor loss
+                    loss = criterion(outputs, labels)
+                    # domain classifier loss
+                    loss_domain = criterion_domain(domain_output, domain_labels)
+                    # compute total loss
+                    total_loss = loss + loss_domain
+                    # backward + optimize only if in training phase
+                    if phase == 'train':
+                        total_loss.backward()
+                        optimizer.step()
+                        # scheduler.step()
+
+                # statistics
+                running_loss += loss.item() * inputs.size(0)
+                # running_corrects += torch.sum(preds == label_idx)   # 这里源码有问题
+                running_corrects += torch.sum(preds.data == labels.data)  # 这里源码有问题
+
+                # domain loss & corrects
+                domain_running_loss += loss_domain.item() * inputs.size(0)
+                domain_running_corrects += torch.sum(domain_preds.data == domain_labels.data)
+
+            # if phase == 'train':
+            #     scheduler.step(epoch=epoch)
+
+            epoch_loss = running_loss / args['dataset_sizes'][phase]
+            epoch_acc = running_corrects / args['dataset_sizes'][phase]
+            domain_epoch_loss = domain_running_loss / args['dataset_sizes'][phase]
+            domain_epoch_acc = domain_running_corrects / args['dataset_sizes'][phase]
+
+            print('Predictor {} Loss: {:.4f} Acc: {:.4f}'.format(
+                phase, epoch_loss, epoch_acc))
+            print('Domain classifier {} Loss: {:.4f} Acc: {:.4f}'.format(
+                phase, domain_epoch_loss, domain_epoch_acc))
+
+            # deep copy the model
+            if phase == 'test' and epoch_acc > best_acc:
+                best_acc = epoch_acc
+                best_model_wts = copy.deepcopy(model.state_dict())
+
+        print()
+
+    time_elapsed = time.time() - since
+    print('Training complete in {:.0f}m {:.0f}s'.format(
+        time_elapsed // 60, time_elapsed % 60))
+    print('Best test Acc: {:4f}'.format(best_acc))
+
+    # load best model weights
+    model.load_state_dict(best_model_wts)
+    return model
+
+
+
 def train_model_baseline(model, criterion, criterion_domain, optimizer, scheduler, device, dataloaders, n_epoch,
                          args={'dataset_sizes': {'train': 1800, 'val': 200, 'test':304}}):
     since = time.time()

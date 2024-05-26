@@ -7,7 +7,7 @@ import mne
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
 from sklearn.preprocessing import OrdinalEncoder
-from sklearn.preprocessing import OneHotEncode
+# from sklearn.preprocessing import OneHotEncode
 
 class dataset(Dataset):
     def __init__(self, X, y, train=True):
